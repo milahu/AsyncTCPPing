@@ -1,21 +1,29 @@
 import asyncio
 import async_timeout
 from timeit import default_timer as timer
+import math
 
 
-async def async_tcp_ping(host, port, timeout=10):
-    time_start = timer()
-    try:
-        with async_timeout.timeout(timeout=timeout):
-            print(f'host={host}||port={port}||status=start')
-            await asyncio.open_connection(host, port)
-    except Exception as e:
-        print(f'host={host}||port={port}||status=error_end||error_msg={e.strerror}')
-        raise e
-    time_end = timer()
-    time_cost_milliseconds = (time_end - time_start) * 1000.0
-    print(f'host={host}||port={port}||status=end||timecost={time_cost_milliseconds}')
-    return time_cost_milliseconds
+async def async_tcp_ping(host, port, timeout=10, runs=1):
+    res = []
+    for run_id in range(0, runs):
+        time_start = timer()
+        try:
+            with async_timeout.timeout(timeout=timeout):
+                print(f'host={host}||port={port}||status=start')
+                await asyncio.open_connection(host, port)
+        except asyncio.TimeoutError as e:
+            print(f'host={host}||port={port}||status=error_end||error=TimeoutError')
+            res.append(math.inf)
+            continue
+        except Exception as e:
+            print(f'host={host}||port={port}||status=error_end||error={repr(e)}')
+            raise e
+        time_end = timer()
+        time_cost_milliseconds = (time_end - time_start) * 1000.0
+        print(f'host={host}||port={port}||status=end||timecost={time_cost_milliseconds}')
+        res.append(time_cost_milliseconds)
+    return min(res) # use best result
 
 
 if __name__ == '__main__':
